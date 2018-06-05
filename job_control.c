@@ -191,13 +191,12 @@ enum status analyze_status(int status, int *info)
 	}
 	else
 	{
-		// el proceso termio
+		// el proceso terminó
 		if (WIFSIGNALED (status))
 		{ *info=WTERMSIG (status); return(SIGNALED);}
 		else
 		{ *info=WEXITSTATUS(status); return(EXITED);}
 	}
-	return;
 }
 
 // -----------------------------------------------------------------------

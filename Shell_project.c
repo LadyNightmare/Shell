@@ -18,12 +18,19 @@ To compile and run the program:
 
 #define MAX_LINE 256 /* 256 chars per line, per command, should be enough. */
 
+job* jobs;
+
+void sighandler (int signal); // We create the handler, we later develop it
+
+
 // -----------------------------------------------------------------------
 //                            MAIN          
 // -----------------------------------------------------------------------
 
-int main(void)
-{
+int main(void) {
+	ignore_terminal_signals();
+	jobs = new_list("Background processes");
+	signal(SIGCHLD, sighandler);
 	char inputBuffer[MAX_LINE]; /* buffer to hold the command entered */
 	int background;             /* equals 1 if a command is followed by '&' */
 	char *args[MAX_LINE/2];     /* command line (of 256) has max of 128 arguments */
@@ -32,22 +39,112 @@ int main(void)
 	int status;             /* status returned by wait */
 	enum status status_res; /* status processed by analyze_status() */
 	int info;				/* info processed by analyze_status() */
+	new_process_group(getpid()); //We create the process group for the father
 
-	while (1)   /* Program terminates normally inside get_command() after ^D is typed*/
-	{   		
+	while (1) {   /* Program terminates normally inside get_command() after ^D is typed*/
+
 		printf("COMMAND->");
 		fflush(stdout);
 		get_command(inputBuffer, MAX_LINE, args, &background);  /* get next command */
 		
 		if(args[0]==NULL) continue;   // if empty command
 
+		if(args[0]!=NULL) {
+
+			if (strcmp(args[0], "cd") == 0) {
+
+				chdir(args[1]);
+
+			} else {
+
+				pid_fork = fork(); //We create the child
+
+							if(!pid_fork) { //This is the child
+
+								new_process_group(pid_fork); //We create the process group for the child
+
+								if(!background) {
+
+									set_terminal(pid_fork); //We give the control of the terminal to the child process in foreground
+
+								} else {
+
+									job process = new_job(pid_fork, *args[0], FOREGROUND);
+
+									add_job(&jobs, process);
+
+								}
+
+								restore_terminal_signals();
+								execvp(args[0], args); //we execute the command
+								printf("Error, command not found: %s\n", args[0]); //execvp has failed so it goes on
+								exit(-1);
+
+
+							} else { //This is the father
+
+								if (!background) { //If it's in background
+
+									waitpid(pid_fork, &status, WUNTRACED, WNOHANG ); //Wait for the child [0 to work normally]
+
+									set_terminal(pid_fork); //After the child has finished, we recover the control of the terminal
+
+									status_res = analyze_status(status, &info);
+									printf("Foregroung pid: %d, command: %s, %s, info: %d\n", pid_fork, args [0], status_strings[status_res], info);
+
+
+
+								}else {
+
+									printf("Background job running... pid: %d, command: %s\n", pid_fork, args [0]);
+
+								}
+
+							}
+			}
+
+		}
+
 		/* the steps are:
-			 (1) fork a child process using fork()
-			 (2) the child process will invoke execvp()
-			 (3) if background == 0, the parent will wait, otherwise continue 
-			 (4) Shell shows a status message for processed command 
-			 (5) loop returns to get_commnad() function
+			 (1) fork a child process using fork() V
+			 (2) the child process will invoke execvp() V
+			 (3) if background == 0, the parent will wait, otherwise continue V
+			 (4) Shell shows a status message for processed command V
+			 (5) loop returns to get_commnad() function V
 		*/
 
 	} // end while
+
+	void sighandler (int signal) {
+
+		int pos = 0;
+
+		job* job = get_item_bypos(&jobs, 0);
+
+		while(job != NULL) {
+
+			int pid = waitpid(job->pgid, WNOHANG);
+
+			if (pid == job->pgid) {
+
+				status_res = analyze_status(job->state, &info);
+
+				if (status_res == EXITED) {
+
+					delete_job(&jobs, job);
+					printf(" Job %s has finished its execution.\n", job->command);
+
+				} else if (status_res == SUSPENDED) {
+
+					job->state = STOPPED;
+					printf("Job %s has been suspended.\n", job->command);
+
+				}
+
+			}
+
+		}
+
+	}
+
 }
