@@ -23,6 +23,9 @@ job* jobs;
 
 void sighandler (int signal); // We create the handler, we later develop it
 
+void printRat();
+void printTux();
+
 
 // -----------------------------------------------------------------------
 //                            MAIN          
@@ -42,6 +45,8 @@ int main(void) {
 	int info;				/* info processed by analyze_status() */
 	new_process_group(getpid()); //We create the process group for the father
 
+	//printRat();
+
 	while (1) {   /* Program terminates normally inside get_command() after ^D is typed*/
 
 		//Recorrer la lista e imprimir los que están hechos
@@ -58,7 +63,13 @@ int main(void) {
 
 				chdir(args[1]);
 
+			}else if (strcmp(args[0], "tux") == 0) {
+
+				printTux();
+
+
 			} else if (strcmp(args[0], "jobs") == 0) {
+
 
 				print_job_list(jobs);
 
@@ -268,5 +279,43 @@ void sighandler (int signal) {
 	}
 
 	unblock_SIGCHLD();
+
+}
+
+/*void printRat () {
+
+	printf("         __             _,-'~^'-.\n"
+"       _// )      _,-'~`         `.\n"
+"     .' ( /`'-,-'`                 ;\n"
+"    / 6                             ;\n"
+"   /           ,             ,-'     ;\n"
+"  (,__.--.      \           /        ;\n"
+"   //'   /`-.\   |          |        `._________\n"
+"     _.-'_/`  )  )--...,,,___\     \-----------,)\n"
+"   ((('~` _.-'.-'           __`-.   )         //\n"
+"         ((('`             (((---~'`         //\n"
+"                                            ((________________\n"
+"                                            `----''''---^^^```\n");
+
+}*/
+
+void printTux () {
+
+	printf("    ....,,\n"
+"        .::o::;'          .....\n"
+"       ::::::::        .::::o:::.,\n"
+"      .::' `:::        :::::::''\n"
+"      :::     :       ::'   `.\n"
+"     .:::     :       :'      ::\n"
+"    .:::       :     ,:       `::\n"
+"   .' :        :`. .' :        :::\n"
+"  .' .:        :  :  .:        : :\n"
+"  : ::'        ::. :' :        : :\n"
+"  :: :         :`: :  :        :`:\n"
+"  :  :         :  ''  :        : '\n"
+"_.---:         :___   :        :\n"
+"     :        :`   `--:        :\n"
+"      : :---: :        : :---: :`---.\n"
+"      '```  '```      '''   ''''\n");
 
 }
